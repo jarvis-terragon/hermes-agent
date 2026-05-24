@@ -100,6 +100,10 @@ RUN cd web && npm run build && \
 # remaining optional platform packages and future pin bumps at first use.
 # Without this, `uv pip install` fails with EACCES and adapters silently
 # fail to load.  See tools/lazy_deps.py.
+# Runtime intentionally starts as root so entrypoint.sh can reconcile HERMES_UID
+# with the mounted /opt/data volume, then drop privileges via gosu. Without
+# root here, users running with a custom host UID hit EACCES on bind mounts.
+# trivy:ignore:DS002
 USER root
 RUN chmod -R a+rX /opt/hermes && \
     chown -R hermes:hermes /opt/hermes/.venv /opt/hermes/ui-tui /opt/hermes/node_modules

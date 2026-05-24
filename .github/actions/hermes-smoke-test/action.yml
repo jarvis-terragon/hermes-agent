@@ -28,14 +28,18 @@ runs:
 
     - name: hermes --help
       shell: bash
+      env:
+        HERMES_IMAGE: ${{ inputs.image }}
       run: |
         docker run --rm \
           -v /tmp/hermes-test:/opt/data \
           --entrypoint /opt/hermes/docker/entrypoint.sh \
-          "${{ inputs.image }}" --help
+          "$HERMES_IMAGE" --help
 
     - name: hermes dashboard --help
       shell: bash
+      env:
+        HERMES_IMAGE: ${{ inputs.image }}
       run: |
         # Regression guard for #9153: dashboard was present in source but
         # missing from the published image.  If this fails, something in
@@ -44,4 +48,4 @@ runs:
         docker run --rm \
           -v /tmp/hermes-test:/opt/data \
           --entrypoint /opt/hermes/docker/entrypoint.sh \
-          "${{ inputs.image }}" dashboard --help
+          "$HERMES_IMAGE" dashboard --help

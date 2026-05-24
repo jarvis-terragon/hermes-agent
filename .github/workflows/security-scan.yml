@@ -44,7 +44,60 @@ jobs:
         run: go install github.com/google/osv-scanner/cmd/osv-scanner@latest
       - name: Run OSV scanner
         run: |
-          "$HOME/go/bin/osv-scanner" --recursive .
+          set -euo pipefail
+          "$HOME/go/bin/osv-scanner" --recursive --format json . > osv-results.json || true
+          python3 - <<'PY'
+          import json, sys
+
+          with open("osv-results.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
+
+          severity_rank = {"LOW": 1, "MODERATE": 2, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
+          findings = []
+
+          def vuln_severity(vuln):
+              max_score = 0.0
+              for sev in vuln.get("severity") or []:
+                  try:
+                      max_score = max(max_score, float(sev.get("score", 0)))
+                  except (TypeError, ValueError):
+                      pass
+              label = (vuln.get("database_specific") or {}).get("severity")
+              rank = severity_rank.get(str(label).upper(), 0)
+              return max_score, rank, label or ""
+
+          def walk(node, package_name="", package_version="", source=""):
+              if isinstance(node, dict):
+                  pkg = node.get("package") or {}
+                  package_name = pkg.get("name") or package_name
+                  package_version = pkg.get("version") or package_version
+                  source = node.get("source") or node.get("path") or source
+                  vulns = node.get("vulnerabilities") or []
+                  for vuln in vulns:
+                      score, rank, label = vuln_severity(vuln)
+                      vid = vuln.get("id") or vuln.get("modified") or "unknown"
+                      findings.append((score, rank, label, vid, package_name, package_version, source))
+                  for value in node.values():
+                      walk(value, package_name, package_version, source)
+              elif isinstance(node, list):
+                  for value in node:
+                      walk(value, package_name, package_version, source)
+
+          walk(data)
+          high = []
+          if findings:
+              print("OSV findings:")
+          for score, rank, label, vid, name, version, source in sorted(findings, reverse=True):
+              print(f"- {vid}: {name}@{version} score={score or 'n/a'} severity={label or 'n/a'} source={source or 'n/a'}")
+              if score >= 7.0 or rank >= severity_rank["HIGH"]:
+                  high.append((score, rank, label, vid, name, version, source))
+
+          if high:
+              print(f"Failing because {len(high)} OSV finding(s) are high/critical severity.")
+              sys.exit(1)
+
+          print("No high/critical OSV findings.")
+          PY
 
   semgrep:
     name: SAST / Semgrep

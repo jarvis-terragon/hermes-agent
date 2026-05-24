@@ -43,7 +43,8 @@ jobs:
       - name: Install osv-scanner
         run: go install github.com/google/osv-scanner/cmd/osv-scanner@latest
       - name: Run OSV scanner
-        run: "$HOME/go/bin/osv-scanner" --recursive .
+        run: |
+          "$HOME/go/bin/osv-scanner" --recursive .
 
   semgrep:
     name: SAST / Semgrep

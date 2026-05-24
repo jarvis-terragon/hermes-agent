@@ -1,0 +1,23 @@
+title = "hermes-agent gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Repository fixtures, docs, and public OAuth client identifiers that are not secrets"
+paths = [
+  '''^tests/''',
+  '''^website/docs/''',
+  '''^optional-skills/mlops/training/unsloth/references/llms-(full|txt)\.md$''',
+  '''^agent/anthropic_adapter\.py$''',
+  '''^agent/google_oauth\.py$''',
+  '''^agent/redact\.py$''',
+  '''^hermes_cli/auth\.py$''',
+  '''^hermes_cli/copilot_auth\.py$''',
+  '''^optional-skills/productivity/telephony/scripts/telephony\.py$''',
+]
+regexes = [
+  '''(?i)(OAUTH_CLIENT_ID|PUBLIC_CLIENT_SECRET_SUFFIX|COPILOT_OAUTH_CLIENT_ID|MINIMAX_OAUTH_CLIENT_ID|XAI_OAUTH_CLIENT_ID|QWEN_OAUTH_CLIENT_ID)\s*=\s*['\"][^'\"]+['\"]''',
+  '''Private key blocks:\s*REDACTED''',
+  '''VAPI_DEFAULT_VOICE_ID\s*=\s*['\"][^'\"]+['\"]''',
+]

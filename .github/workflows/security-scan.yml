@@ -43,7 +43,7 @@ jobs:
       - name: Install osv-scanner
         run: go install github.com/google/osv-scanner/cmd/osv-scanner@latest
       - name: Run OSV scanner
-        run: osv-scanner --recursive .
+        run: "$HOME/go/bin/osv-scanner" --recursive .
 
   semgrep:
     name: SAST / Semgrep
@@ -63,9 +63,11 @@ jobs:
       - name: Install Trivy
         run: |
           set -euo pipefail
-          version="0.57.1"
-          curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${version}/trivy_${version}_Linux-64bit.tar.gz" -o /tmp/trivy.tar.gz
-          tar -xzf /tmp/trivy.tar.gz -C /tmp trivy
-          sudo install /tmp/trivy /usr/local/bin/trivy
+          sudo apt-get update
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
       - name: Run Trivy filesystem scan
         run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed .
